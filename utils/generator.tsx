@@ -17,13 +17,12 @@ export const randomize = (
   let max: number;
   let min: number;
   if(Array.isArray(num)) {
-    min = num[0];
-    max = num[1];
+    min = num[0] && num[1] && num[0] > 0 && num[0] < num[1] ? num[0] : 0;
+    max = num[0] && num[1] && num[1] > num[0] ? num[1] : 1;
   } else {
-    max = num;
+    min = 0;
+    max = num && num > 0 ? num : 1;
   }
-  min = min && min > 0 && min < max ? min : 0;
-  max = max && max > 0 && min < max ? max : 1;
   const shiftNum  = shift ? min + shift : min;
   return Math.floor(Math.random() * (max-min)) + shiftNum;
 }
@@ -138,7 +137,7 @@ export const stringToArrayValues = (str: string) => {
   const spaces = /^\S*$/;
   // console.log(!spaces.test(str))
   if(!spaces.test(str.trim())) {
-    return str.replaceAll(',','').trim().split(" ").filter((v:any)=>v!='')
+    return str.replace(/,/g, '').trim().split(" ").filter((v:any)=>v!='')
   }
   str = str.trim();
   return str.split(",").filter((v:any)=>v!='')
@@ -215,7 +214,7 @@ export const padString = (
   //? whichever new string with padding placement is needed
 
   //? Set defaults
-  const length = minLength > 0 ? minLength : 2;
+  const length = minLength && minLength > 0 ? minLength : 2;
   //? Convert any numbers to a string
   const newStr = string.toString();
   //? Pad start of string with given character
@@ -225,13 +224,11 @@ export const padString = (
   }
 }
 
-
 //* SPLIT STRING TO ARRAY
 export const splitString = (str: string) => {
   //? Outputs an array of each individual character
   return [...str];
 }
-
 
 //* REVERSE STRING ORDER
 export const reverseString = (str: string) => {
@@ -239,27 +236,26 @@ export const reverseString = (str: string) => {
   return splitString(str).reverse().join('');
 }
 
-
 // //* ADD ELLIPSIS TO END OF STRING
-// //! Not working right now :/ (This expression is not callable. Type 'Boolean' has no call signatures.)
-// export const ellipsis = (str: string, condition?: any): string => {
-//   //? Check for condition or ignore this check
-//   const check = condition && typeof condition === 'function'
-//       ? condition()
-//     : condition && typeof condition === 'boolean'
-//       ? condition
-//       : true;
-//   //? Add an ellipsis if chadracter limit is less than the length of the string
-//   //? Ignore if the new string ends with any other punctuation mark
-//   if(check
-//     && !str.endsWith(`?`) && !str.endsWith(`!`)
-//     && !str.endsWith(`"`) && !str.endsWith("'")) {
-//     //? Check if there is already a "." at the end of the new string to add two
-//     //? if there is or three if there isn't
-//     return str.endsWith('.') ? str += '..' : str += '...';
-//   }
-//   return str;
-// }
+// // Not working right now :/ (This expression is not callable. Type 'Boolean' has no call signatures.)
+export const addEllipsis = (str: string, condition?: boolean | (() => boolean)): string => {
+  //? Check for condition or ignore this check
+  const check = condition !== undefined && typeof condition === 'function'
+      ? condition()
+    : condition !== undefined && typeof condition === 'boolean'
+      ? condition
+      : true;
+  //? Add an ellipsis if chadracter limit is less than the length of the string
+  //? Ignore if the new string ends with any other punctuation mark
+  if(check
+    && !str.endsWith(`?`) && !str.endsWith(`!`)
+    && !str.endsWith(`"`) && !str.endsWith("'")) {
+    //? Check if there is already a "." at the end of the new string to add two
+    //? if there is or three if there isn't
+    return str.endsWith('.') ? str += '..' : str += '...';
+  }
+  return str;
+}
 
 //* LIMIT CHARACTERS IN A STRING
 export const charLimit = (
@@ -277,16 +273,10 @@ export const charLimit = (
   }
   //? Add an ellipsis if character limit is less than the length of the string
   //? Ignore if the new string ends with any other punctuation mark
-  // const condition = () => ellipsis === true && len < string.length
-  // return ellipsis(trim, condition())
-  if(ellipsis === true && len < string.length
-    && !trim.endsWith(`?`) && !trim.endsWith(`!`)
-    && !trim.endsWith(`"`) && !trim.endsWith("`")) {
-    //? Check if there is already a "." at the end of the new string to add two
-    //? if there is or three if there isn't
-    return trim.endsWith('.') ? trim += '..' : trim += '...';
-  }
-  return trim;
+  const condition = ellipsis === true && len < string.length
+
+  //? Return with ellipsis if condition is met
+  return addEllipsis(trim, condition);
 }
 
 //* LIMIT WORD COUNT IN STRING
@@ -298,10 +288,8 @@ export const wordLimit = (
   const split = string.trim().split(' ');
   const arr = split.slice(0, len);
   let output = arr.join(' ');
-  if(ellipsis === true && len < split.length) {
-    return output.endsWith('.') ? output += '..' : output += '...';
-  }
-  return output;
+  const condition = ellipsis === true && len < split.length;
+  return addEllipsis(output, condition);
 }
 
 //* GET WORD COUNT
@@ -321,9 +309,9 @@ export const fillWords = (words: string, maxWords?: number, ellipsis?: boolean) 
   const wLen = wordArr.length;
 
   //? Determine number of times to loop through 'words'
-  const loop = maxWords < wLen || maxWords === undefined ? 1 : Math.ceil(maxWords / wLen);
+  const loop = maxWords && maxWords < wLen || maxWords === undefined ? 1 : Math.ceil(maxWords / wLen);
   //? New array
-  let arr = [];
+  let arr: string[] = [];
 
   for(let i=0; i < loop; i++) {
     arr.push(words);
@@ -331,40 +319,25 @@ export const fillWords = (words: string, maxWords?: number, ellipsis?: boolean) 
   const strFromArr = arr.join(' ');
   let arrFromStr = strFromArr.split(' ');
   const lenMatch = arrFromStr.length === maxWords;
-  arrFromStr.length = maxWords;
+  if(maxWords){
+    arrFromStr.length = maxWords;
+  }
   let output = arrFromStr.join(' ');
 
-  if(ellipsis === true && !lenMatch) {
-    return output.endsWith('.') ? output += '..' : output += '...';
-  }
-  return output;
+  const condition = ellipsis === true && !lenMatch
+  return addEllipsis(output, condition);
 }
 
 //* CHECK FOR A SEARCH TERM IN A STRING
 export const stringSearch = (
   stringToCheck: string,
   searchTerm: string,
-  checks?: {
-    includes?: boolean,
-    startsWith?: boolean,
-    endsWith?: boolean,
-  }
 ) => {
-  let { includes, startsWith, endsWith } = checks;
-    includes = includes ? includes : false;
-    startsWith = startsWith ? startsWith : false;
-    endsWith = endsWith ? endsWith : false;
-
-  if(includes && stringToCheck.includes(searchTerm)) {
-    return true;
+  return {
+    includes: stringToCheck.includes(searchTerm),
+    startsWith: stringToCheck.startsWith(searchTerm),
+    endsWith: stringToCheck.endsWith(searchTerm),
   }
-  if(startsWith && stringToCheck.startsWith(searchTerm)) {
-    return true;
-  }
-  if(endsWith && stringToCheck.endsWith(searchTerm)) {
-    return true;
-  }
-  return false;
 }
 
 //* CAPITALIZE FIRST LETTER ONLY
@@ -403,7 +376,7 @@ export const capitalizeWords = (
   }
 
   // Make output for string of words or an array of words & set checks
-  let capsArr = [];
+  let capsArr: string[] = [];
   const overrideWords = overrideList && overrideList !== undefined && overrideList.length
     ? overrideList : false;
   let titleArray = overrideWords
@@ -411,11 +384,11 @@ export const capitalizeWords = (
     : listOfWords("titleCase");
 
   const wordsToCheck =
-    (titleCase === true || titleCase) && excludeWordsList
+    (titleCase === true && titleCase) && excludeWordsList
       ? excludeWordsList.concat(titleArray)
-    : titleCase || (titleCase === true && !excludeWordsList)
+    : titleCase && !excludeWordsList
       ? titleArray
-    : false;
+      : false;
   
   //? Loop through words array to check and exclude in capitalization
   for (let i = 0; i < arr.length; i++) {
@@ -457,7 +430,7 @@ export const removeWordAccents = (word: string) => {
   let output = '';
   splitAccent.map(char => {
     //? Only push letters and numbers, accents will be ignored
-    if(!char.replaceAll(/[^a-z0-9]/gi, '')){
+    if(char.replace(/[\u0300-\u036f]/gi, '')){
       output += char;
     }
   })
@@ -493,7 +466,7 @@ export const removeAccents = (input: string) => {
     return removeWordAccents(input);
   }
 
-  let normalizedWords = [];
+  let normalizedWords: string[] = [];
 
   for (let i = 0; i < inputArray.length; i++) {
     const word = inputArray[i];
@@ -641,7 +614,7 @@ export const cardShuffle = (
     // it were to start from the "bottom of the deck".
   const len = array.length;
 
-  let arr = [];
+  let arr: any[] = [];
   let setA = split[0];
   let setB = split[1];
 
@@ -685,16 +658,16 @@ export const shuffleCards = (
 
   const bellSplit = split === "bell" || split === true ? true : false;
   const setSplit = !bellSplit && typeof split === 'number' && !Number.isNaN(split)
-    ? split : null;
+    ? split : undefined;
 
-  if(rounds > 100){
+  if(rounds && rounds > 100){
     rounds = 100;
     moreRandom = true;
   }
 
   let output = cardShuffle(array, setSplit, bellSplit, tarot);
 
-  if (rounds > 1) {
+  if (rounds && rounds > 1) {
     for(let i = 0; i < (rounds-1); i++) {
       output = cardShuffle(output, setSplit, bellSplit, tarot);
     }
@@ -730,13 +703,12 @@ export const simpleMap = (
   id?: any
 ) => {
   const elType = tag ? tag.toLowerCase() : `div`;
-  return (<>
-    {items.map((item, index) => {
+  const mappedArray = items.map((item, index) => {
 			tag
 				? `<${elType} className=${classes} key=${index} id=${id ? id+index : ''}>${item}</${elType}>`
-				: <div className={classes} key={index} id={id ? id+index : ''}>{item}</div>
-		})}
-  </>)
+				: `<div className={classes} key={index} id={id ? id+index : ''}>{item}</div>`
+		})
+  return mappedArray;
 }
 
 //* USE AN ARRAY OF OBJECTS TO RETURN ELEMENTS WITH UNIQUE TAGS AND/OR CLASSES IN MAP FUNCTION
@@ -747,11 +719,10 @@ export const complexMap = (
     content: any
   }[]
 ) => {
-  return (<>
-    {itemsArray.map((item, index) => {
-      `<${item.tag.toLowerCase()} className=${item.classes} key=${index}>${item.content}</${item.tag.toLowerCase()}>`
-    })}
-  </>)
+  const mappedArray = itemsArray.map((item, index) => {
+    `<${item.tag.toLowerCase()} className=${item.classes} key=${index}>${item.content}</${item.tag.toLowerCase()}>`
+  })
+  return mappedArray;
 }
 
 //* REVERSE ORDER OF AN ARRAY
@@ -803,7 +774,11 @@ export const splitArray = (
   const half = Math.ceil(list.length / 2); // The first array will get the extra item if array is odd
   const randomVal = randomize(Math.ceil(half / 2)); // Random value at half of half
   const split = cointoss() ? half+randomVal : half-randomVal;
-  const splitAt = randomSplit ? split : randomSplit === "bell" ? randomBell(list.length) : half;
+  const splitAt = randomSplit && randomSplit !== "bell"
+      ? split
+    : randomSplit === "bell"
+      ? randomBell(list.length)
+      : half;
 
   const padding = clampPad && typeof clampPad === 'number' && !Number.isNaN(clampPad) ? clampPad : 0;
 
@@ -811,7 +786,7 @@ export const splitArray = (
   const max = (list.length-1)-padding;
 
   const finalSplit = ( setSplit || setSplit ) === 0 ? numberClamp(
-      setSplit, numberClamp(min, 1, half-1), numberClamp(max, half+1, list.length-1)
+      toNum(setSplit), numberClamp(min, 1, half-1), numberClamp(max, half+1, list.length-1)
     ) : false; // Ensure split remains between 1 and half with 'clampPad' value
   
   const a = list.slice( 0, finalSplit ? finalSplit : splitAt );
@@ -833,15 +808,15 @@ export const randomSelection = (
   arraySet: any[],
   selectIndexesArray?: number[]
 ) => {
-  let output = [];
+  let output: any[] = [];
   if (selectIndexesArray) {
     for (let i=0; i < selectIndexesArray.length; i++) {
       const n = selectIndexesArray[i];
       if(checkType(n,'number')) {
         output.push(arraySet[n]);
       } else {
-        useConsole(`WARNING: All selected values must be numbers! Value
-        "${selectIndexesArray[i]}" at index ${i} was skipped...`, 'logWarn')
+        useConsole(`All selected values must be numbers! Value
+        "${selectIndexesArray[i]}"at index ${i} was skipped...`).logWarn()
       }
     }
   } else {
@@ -851,17 +826,15 @@ export const randomSelection = (
 }
 
 //* RETURN A SINGLE ELEMENT OR SET FROM AN ARRAY OF ARRAYS
-
 //? "arraySet" is the array of arrays being sorted
-
+//
 //? "outputArray" is boolean
 //?    true = output entire array set (default)
 //?    false = output one element from array set... just like `select(el)` function above ^^^
-
 //? "arraySelect" is an array conatining indexes of array sets to be considered
 //?    use to include only specific array sets from the array of arrays ("arraySet")
-
-//?   CHOOSE ONE ARRAY SET FROM AN ARRAY OF ARRAYS
+//
+//? CHOOSE ONE ARRAY SET FROM AN ARRAY OF ARRAYS
 //?   Example (selecting only indexes 0 and 2 from array):
 //?     const arr = [["1a","2a"],["1b"],["1c","2c","3c"],["4b","4c"]]
 //?     arrayEl(arr, true, [0,2])
@@ -892,6 +865,7 @@ export function copyArrayData(src: any[], dest: any[]) {
   return dest;
 }
 
+
 /////////////////////////////
 // HANDLE SETTING ELEMENTS //
 /////////////////////////////
@@ -909,13 +883,11 @@ export const set = (data: object | any[], newData: object | any[] | number | boo
     } else if (Array.isArray(data) && dontSpread) {
         return  [ ...data, newData ];
     } else if (typeof data === 'object' && dontSpread && !Array.isArray(data)) {
-        useConsole('Objects can only be combimed with other objects.', 'logError');
+        useConsole('Objects can only be combimed with other objects.').logError();
     } else {
-        useConsole('Data type must be an object or array.', 'logError');
+        useConsole('Data type must be an object or array.').logError();
     }
 }
-
-
 
 
 
@@ -961,7 +933,7 @@ export const reduceBy = (
   //?      { qty: 130, color: 'yellow', name: 'banana', price: 3 },
   //?      { qty: 120, color: 'orange', name: 'orange', price: 1.5 },
   //?      { qty: 70, color: 'yellow', name: 'melon', price: 5 } ]
-  func = func ? func : (prev, _, item) => [...prev, item];
+  func = func !== undefined ? func : (prev, _, item) => [...prev, item];
   return Object.entries(obj).reduce(
     (prev, [key, value]) => func(prev, key, value),
      initialValue ? initialValue : []
@@ -1005,46 +977,5 @@ export const lorem = (wordCount?: number) => {
     "esse cillum dolore eu fugiat nulla pariatur. Excepteur sint "+
     "occaecat cupidatat non proident, sunt in culpa qui officia "+
     "deserunt mollit anim id est laborum."
-  return wordCount > 0 ? fillWords(ipsum, wordCount) : ipsum;
-}
-
-
-//* RETURN AN EMPTY IMAGE
-//? EXAMPLE:
-//? outputObject = { height: 1000, width: 1000 } - or - boolean
-//? outputImage = {classes: 'image-classes', styles: { style1: value1, style2: value2 }}
-export const emptyImg = (
-  outputObject: {
-    height?: number | boolean,
-    width?: number | boolean,
-  } = undefined,
-  outputImage: {
-    classes?: string | boolean,112
-    styles?: object,
-  } = undefined
-) => {
-
-  //? Returns an empty 1x1 px Data PNG
-  const url = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-  
-  const img = {
-    classes: outputImage !== undefined && outputImage.classes !== true
-        ? outputImage.classes
-      : outputImage !== undefined && outputImage.classes === true 
-        ? 'empty-image'
-        : '',
-    styles: outputImage !== undefined && outputImage.styles !== undefined
-        ? outputImage.styles
-        : null,
-  }
-  
-  const autosize = imageSizeObj(outputObject)
-  const height = autosize.height;
-  const width = autosize.width;
-
-          // If 'classes' or 'styles' are defined and no 'height'/'width' set, output will be an 'img' element
-  return (  outputImage && !outputObject ? <img className={img.classes.toString()} style={img.styles} src={url} />
-          // If 'height' and/or 'width' are defined and no 'classes'/'styles' set, output will be an Image object
-          : outputObject && !outputImage ? { src: url, blurDataUrl: url, height: height, width: width }
-          : url )
+  return wordCount && wordCount > 0 ? fillWords(ipsum, wordCount) : ipsum;
 }

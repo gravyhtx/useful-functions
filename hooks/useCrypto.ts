@@ -39,7 +39,7 @@ const useCrypto = ( input: { hash: string, iv: string } | any | any[], secret?:s
       }
       catch(e) {
         const message = 'Decryption failed. Check to see if IV is correct first before proceeding with troubleshooting.'
-        useConsole(message, 'logError');
+        useConsole(message).logError;
         return false;
       }
     }
@@ -53,7 +53,7 @@ const useCrypto = ( input: { hash: string, iv: string } | any | any[], secret?:s
   //? Error check...
   if(!encrypted && !decrypted) {
     // Throw error if both encryption and decryption fail
-    useConsole(`'useCrypto' failed. Unable to read data.`, 'logError');
+    useConsole(`'useCrypto' failed. Unable to read data.`).logError;
   }
 
   //? Output data as an object to access with dot notation or destructuring

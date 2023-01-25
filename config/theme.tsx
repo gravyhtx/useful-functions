@@ -1,4 +1,4 @@
-import { GravyLogo } from '../components/elements/Logo';
+import { Logo } from '../components/elements/Logo';
 
 import website from './site-data.json';
 

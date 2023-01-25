@@ -14,13 +14,12 @@ export const cryptoRando = (
   let max: number;
   let min: number;
   if(Array.isArray(num)) {
-    min = num[0];
-    max = num[1];
+    min = num[0] && num[1] && num[0] > 0 && num[0] < num[1] ? num[0] : 0;
+    max = num[0] && num[1] && num[1] > num[0] ? num[1] : 1;
   } else {
-    max = num;
+    min = 0;
+    max = num && num > 0 ? num : 1;
   }
-  min = min && min > 0 && min < max ? min : 0;
-  max = max && max > 0 && min < max ? max : 1;
   const range = max - min + 1;
   const bytes = crypto.randomBytes(4);
   const rand = (bytes.readUInt32BE() / 0xffffffff) * range + min;
@@ -75,14 +74,14 @@ export const simpleCrypto = (data: string | {hash: string, iv: string | Buffer},
       : null;
   let cryptiIv = dataIv !== null ? dataIv : crypto.randomBytes(16);
   key = process.env.CRYPTO_SECRET_KEY ? Buffer.from(process.env.CRYPTO_SECRET_KEY) :
-  Buffer.isBuffer(key) ? key : Buffer.from(key);
+  !Buffer.isBuffer(key) && key ? Buffer.from(key) : key;
 
-  let cipher = isString ? crypto.createCipheriv('aes-256-cbc', key, cryptiIv) : null;
-  let decipher = !isString && data.hash && data.iv ? crypto.createDecipheriv('aes-256-cbc', key, cryptiIv) : null;
-  let hash = isString ? cipher.update(data, 'utf8', 'base64') : null;
-  hash += isString ? cipher.final('base64') : null;
-  let decrypted = !isString && data.hash && data.iv ? decipher.update(data.hash, 'base64', 'utf8') : null;
-  decrypted += !isString && data.hash && data.iv ? decipher.final('utf8') : null;
+  let cipher = isString && key ? crypto.createCipheriv('aes-256-cbc', key, cryptiIv) : null;
+  let decipher = !isString && key && data.hash && data.iv ? crypto.createDecipheriv('aes-256-cbc', key, cryptiIv) : null;
+  let hash = isString && cipher ? cipher.update(data, 'utf8', 'base64') : '';
+    hash += isString && cipher ? cipher.final('base64') : null;
+  let decrypted = !isString && data.hash && data.iv && decipher ? decipher.update(data.hash, 'base64', 'utf8') : '';
+    decrypted += !isString && decipher && data.hash && data.iv ? decipher.final('utf8') : null;
 
   return {
     encrypt: isString ? { iv: cryptiIv.toString('hex'), hash } : null,
@@ -116,6 +115,9 @@ export const baseEncrypt = (str: string) => {
   }
 }
 
+
+//* THE "MODULO CYPHER"
+//? Simple substitution cypher with key
 export const moduloCypher = (text: string, key: string) => {
   key = key ? key : process.env.CRYPTO_SECRET_KEY ? process.env.CRYPTO_SECRET_KEY : "tk2W8JG1rt5k1cs2Dc69ymiDUoIQs0La";
   const encryptText = (): string => {
@@ -143,11 +145,10 @@ export const moduloCypher = (text: string, key: string) => {
     }
     return decStr;
   }
-  const { encrypt } = baseEncrypt(encryptText());
-  const { decrypt } = baseEncrypt(decryptText());
+
   return {
-    encrypt: encrypt,
-    decrypt: decrypt
+    encrypt: baseEncrypt(encryptText())?.encrypt,
+    decrypt: baseEncrypt(decryptText())?.decrypt
   };
 }
 
@@ -161,14 +162,15 @@ export const shortenHash = (string: string) => {
 
 
 //* SIMPLE HASH
+//? Generates hash between 6-12 characters
 export const simpleHash = (string: string, length?: number, lowercase?: boolean) => {
   const lc = lowercase === true ? true : false;
   let hash = 0;
   const outputLength = length && length >= 6 && length <= 12
       ? length
-    : length > 12
+    : length && length > 12
       ? 12
-    : length < 6
+    : length && length < 6
       ? 6
       : 6
 
@@ -201,8 +203,8 @@ export const cryptoNumberArray = (length: number, maxNum: number) => {
 
 //* GENERATE UUID W/ SET CHARACTER LENGTH
 export const generateUID = (length?: number, uppercase?: boolean) => {
-  let arr = [];
-  length = length > 0 ? length : 6;
+  let arr: string[] = [];
+  length = length && length > 0 ? length : 6;
   const loop = length < 6 ? 1 : Math.ceil(length / 6);
   for(let i=0; i < loop; i++) {
     let firstHalf = ((Math.random() * 46656) | 0).toString();
@@ -217,8 +219,8 @@ export const generateUID = (length?: number, uppercase?: boolean) => {
 
 //* RANDOM 14 CHARACTER STRING
 export const randomString = (length?: number, uppercase?: boolean)  => {
-  let arr = [];
-  length = length > 0 ? length : 14;
+  let arr: string[] = [];
+  length = length && length > 0 ? length : 14;
   const loop = length < 6 ? 1 : Math.ceil(length / 6);
   for(let i=0; i < loop; i++) {
     // Output a random 14 character string with uppercase/lowercase letters and numbers 
@@ -229,7 +231,7 @@ export const randomString = (length?: number, uppercase?: boolean)  => {
 }
 
 
-//* ROT13 CYPHER - Same to encode and decode
+//* ROT13 CYPHER (AKA "CAESAR CYPHER") - Same to encode and decode
 export const rot13 = (str: string) => str.split('')
     .map(char => String.fromCharCode(char.charCodeAt(0) + (char.toLowerCase() < 'n' ? 13 : -13)))
     .join('');
